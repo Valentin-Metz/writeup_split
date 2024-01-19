@@ -10,3 +10,16 @@ on 2023-03-04.
 A fix has been released with
 [c4c5ed8f4e9cd55a12966d4f520e3a13101637d9](https://github.com/coreutils/coreutils/commit/c4c5ed8f4e9cd55a12966d4f520e3a13101637d9)
 on 2024-01-17.
+
+Affected versions: `GNU coreutils` `v9.4`; `v9.3`; `v9.2`
+
+Proof of concept:
+The `split_me` example file in this repository can be used to trigger a crash in the affected versions.
+
+```bash
+split -C 1024 ./split_me
+```
+
+This will crash `split` with a segmentation fault (`SIGABRT`).
+
+# Discovery:
