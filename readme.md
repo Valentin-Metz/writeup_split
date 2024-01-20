@@ -67,6 +67,37 @@ Date:   Sat Mar 4 11:42:16 2023 -0800
  1 file changed, 52 insertions(+), 53 deletions(-)
 ```
 
+We can then compile the program (ideally with an address sanitizer),
+in order to find the exact line it crashes.
 With only ~50 lines to go through,
-it becomes easy to identify the bug,
-by focusing on areas that perform index calculations and heap allocations.
+it becomes easy to identify the bug.
+In our case, the crash occurred in a `memcpy()` call with incorrect indices.
+And indeed, if we check the area around the `memcpy()` call,
+we find a diff that changes index calculations right before:
+
+```
+@@ -816,15 +820,10 @@
+           /* Update hold if needed.  */
+           if ((eoc && split_rest) || (!eoc && n_left))
+             {
+-              size_t n_buf = eoc ? split_rest : n_left;
++              idx_t n_buf = eoc ? split_rest : n_left;
+               if (hold_size - n_hold < n_buf)
+-                {
+-                  if (hold_size <= SIZE_MAX - bufsize)
+-                    hold_size += bufsize;
+-                  else
+-                    xalloc_die ();
+-                  hold = xrealloc (hold, hold_size);
+-                }
++                hold = xpalloc (hold, &hold_size, n_buf - (hold_size - n_hold),
++                                -1, sizeof *hold);
+               memcpy (hold + n_hold, sob, n_buf);
+               n_hold += n_buf;
+               n_left -= n_buf;
+```
+
+If we roll back these changes and recompile,
+`split` processes all our testcases without error.
+
+All that's left, is to go through the logic in order to verify the bug and develop a fix.
